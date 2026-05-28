@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Lifepack G10 v9.0 - LP35 Style</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Arial', sans-serif; margin: 0; padding: 10px; height: 100vh; box-sizing: border-box; display: flex; overflow: hidden; user-select: none; }
+        #setup-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .setup-card { background: #222; padding: 40px; border-radius: 12px; text-align: center; }
+        input[type="number"] { width: 150px; padding: 10px; font-size: 28px; text-align: center; border-radius: 6px; margin: 15px 0; background: #000; color: #fff; border: 1px solid #444; }
+        .btn-connect { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 6px; font-size: 20px; cursor: pointer; font-weight: bold; }
+        
+        #monitor-screen { display: grid; grid-template-columns: 1fr 300px; width: 100%; height: 100%; gap: 10px; }
+        
+        .sinistra-container { display: flex; flex-direction: column; height: 100%; gap: 10px; }
+        .tracciati-container { display: flex; flex-direction: column; gap: 8px; height: 60%; }
+        .onde-row { height: 49%; position: relative; background: #050505; border-radius: 6px; border: 1px solid #111; overflow: hidden; display: flex; align-items: center; }
+        .titolo-onda { position: absolute; top: 8px; left: 12px; font-size: 16px; font-weight: bold; z-index: 10; background: rgba(5,5,5,0.6); padding: 2px 5px; border-radius: 3px; }
+        
+        .scroller-wrapper { display: flex; width: 200%; height: 80%; position: relative; }
+        .scroller-img { height: 100%; width: 50%; object-fit: contain; animation: scorrimentoContinuo 15s linear infinite; }
+        
+        @keyframes scorrimentoContinuo { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
+        .linea-piatta { width: 100%; height: 2px; background: #00ffff; position: absolute; top: 50%; left: 0; display: none; }
+
+        /* =======================================================
+           STILE PLANCIA TERAPIA - LIFEPACK 35 DOCK
+        ======================================================= */
+        .terapia-container { height: 38%; background: #1a3668; border: 3px solid #112244; border-radius: 8px; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; }
+        
+        /* Tab Superiori Grandi */
+        .terapia-tabs { display: flex; height: 40px; background: #112244; border-bottom: 2px solid #0d1b33; }
+        .tab-mode { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #a4b3d6; cursor: pointer; transition: all 0.2s; border-right: 1px solid #1a3668; text-transform: uppercase; }
+        .tab-mode:last-child { border-right: none; }
+        /* Il mitico giallo fluo del Lifepack 35 attivo */
+        .tab-mode.attivo { background: #ffff00; color: #000; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2); }
+
+        /* Corpo Interno della Terapia */
+        .terapia-body { flex: 1; display: flex; padding: 10px; gap: 15px; align-items: center; justify-content: space-between; }
+        
+        /* I Grandi Box Monitor di Visualizzazione (Azzurro LP35) */
+        .box-visualizzazione { background: #4a77cc; border-radius: 16px; border: 2px solid #365da8; padding: 10px; width: 170px; height: calc(100% - 20px); display: flex; flex-direction: column; align-items: center; justify-content: space-between; box-sizing: border-box; }
+        .label-terapia { color: #fff; font-size: 14px; font-weight: bold; text-align: center; line-height: 1.2; }
+        
+        /* Lo Schermo Nero del Valore */
+        .schermo-nero { background: #000; border-radius: 10px; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 22px; font-weight: bold; color: #ffff00; border: 1px solid #224488; }
+        
+        /* Tastiera dei Selettori Energie (Griglia Pulsanti) */
+        .tastiera-energie { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; height: calc(100% - 20px); }
+        .btn-energia { background: #3b65b8; border: 1px solid #294c94; color: #fff; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+        .btn-energia:hover { background: #4a77cc; }
+        .btn-energia:active { background: #ffff00; color: #000; }
+
+        /* Pulsanti Laterali di Carica/Scarica Stile Hardware */
+        .colonna-hardware-buttons { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 5px; }
+        .btn-hw { width: 65px; height: 65px; border-radius: 50%; border: 3px solid #222; color: white; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        .btn-hw:active { transform: scale(0.95); }
+        
+        .btn-hw-carica { background: #e67e22; border-color: #d35400; }
+        .btn-hw-carica.pronto { animation: flashArancio 0.4s infinite alternate; }
+        
+        .btn-hw-scarica { background: #c0392b; border-color: #962d22; font-size: 24px; display: none; }
+        .btn-hw-scarica.pronto { display: flex; animation: flashRossoTerapia 0.3s infinite alternate; }
+
+        @keyframes flashArancio { 0% { opacity: 0.7; } 100% { opacity: 1; box-shadow: 0 0 12px #e67e22; } }
+        @keyframes flashRossoTerapia { 0% { background: #962d22; } 100% { background: #ff0000; box-shadow: 0 0 18px #ff0000; } }
+
+        /* Colonna Destra Parametri */
+        .parametri-container { display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 8px; }
+        .box-p { background: #0c0c0c; border: 1px solid #222; border-radius: 8px; padding: 10px 15px; display: flex; flex-direction: column; justify-content: center; height: 18%; transition: background 0.3s; }
+        .label { font-size: 13px; font-weight: bold; }
+        .val { font-size: 72px; font-weight: bold; text-align: right; line-height: 1; margin: 0; font-family: monospace; }
+        
+        .c-fc { color: #00ff00; } .c-pa { color: #ff00ff; } .c-spo2 { color: #00ffff; } .c-fr { color: #ffff00; } .c-etco2 { color: #ff8000; }
+        #info-ritmo { font-size: 16px; font-weight: bold; color: #fff; background: rgba(34, 34, 34, 0.8); padding: 5px 12px; border-radius: 4px; position: absolute; bottom: 8px; left: 12px; z-index: 10; }
+
+        .allarme-rosso { animation: lampeggioRosso 0.5s infinite alternate; }
+        @keyframes lampeggioRosso { 0% { background-color: #0c0c0c; color: #ff0000; } 100% { background-color: #b30000; color: #ffffff; } }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="setup-card">
+            <h2>Lifepack G10 - Monitor LP35</h2>
+            <p>Inserisci il PIN del Regista per accoppiare gli schermi:</p>
+            <input type="number" id="pin-monitor" value="1234">
+            <br>
+            <button class="btn-connect" id="btn-connetti">Sincronizza Monitor</button>
+            <p id="stato-setup" style="color: #888; margin-top: 15px;"></p>
+        </div>
+    </div>
+
+    <div id="monitor-screen">
+        <div class="sinistra-container">
+            <!-- TRACCIATI -->
+            <div class="tracciati-container">
+                <div class="onde-row">
+                    <div class="titolo-onda c-fc">II</div>
+                    <div class="scroller-wrapper">
+                        <img id="ecg-img-1" class="scroller-img" src="ritmi/sinusale.png" alt="ECG">
+                        <img id="ecg-img-2" class="scroller-img" src="ritmi/sinusale.png" alt="ECG">
+                    </div>
+                    <div id="info-ritmo">In attesa del regista...</div>
+                </div>
+                
+                <div class="onde-row">
+                    <div class="titolo-onda c-spo2">PLETH</div>
+                    <div id="pleth-scroller" class="scroller-wrapper">
+                        <img class="scroller-img" src="ritmi/sinusale_pleth.png" style="filter: hue-rotate(90deg);" alt="Pleth">
+                        <img class="scroller-img" src="ritmi/sinusale_pleth.png" style="filter: hue-rotate(90deg);" alt="Pleth">
+                    </div>
+                    <div id="pleth-piatta" class="linea-piatta"></div>
+                </div>
+            </div>
+
+            <!-- PLANCIA TERAPIA IN STILE HARDWARE LIFEPACK 35 -->
+            <div class="terapia-container">
+                <!-- Tab Selettori Modalità ad attivazione Giallo Fluo -->
+                <div class="terapia-tabs">
+                    <div class="tab-mode attivo" id="tab-defib" onclick="impostaLp35Mode('DEFIB')">Defib</div>
+                    <div class="tab-mode" id="tab-sync" onclick="impostaLp35Mode('SYNC')">Sync</div>
+                    <div class="tab-mode" id="tab-pacing" onclick="impostaLp35Mode('PACING')">Pacing</div>
+                </div>
+
+                <div class="terapia-body">
+                    <!-- Box Frequenza Pacing (appare solo in PACING) -->
+                    <div class="box-visualizzazione" id="container-box-bpm" style="display: none;">
+                        <div class="schermo-nero" id="display-lp35-bpm">-- Bpm</div>
+                        <div class="label-terapia">Frequenza<br>Cardiaca</div>
+                    </div>
+
+                    <!-- Box Principale di Selezione Energia / mA -->
+                    <div class="box-visualizzazione">
+                        <div class="schermo-nero" id="display-lp35-energia">--- Joule</div>
+                        <div class="label-terapia" id="label-box-energia">Seleziona<br>energia</div>
+                    </div>
+
+                    <!-- Tastiera Dinamica dei Joule / Bpm (Si aggiorna via JS) -->
+                    <div class="tastiera-energie" id="tastiera-dinamica">
+                        <!-- Bottoni caricati via JavaScript -->
+                    </div>
+
+                    <!-- Pulsanti Tondi Hardware di Carica e Scarica -->
+                    <div class="colonna-hardware-buttons">
+                        <button class="btn-hw btn-hw-carica" id="btn-hw-carica" onclick="avviaCaricaLP35()">⚡<br>Carica</button>
+                        <button class="btn-hw btn-hw-scarica" id="btn-hw-scarica" onclick="eseguiScaricaLP35()">⚡</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLONNA PARAMETRI VITALI -->
+        <div class="parametri-container">
+            <div class="box-p c-fc" id="box-fc"><div class="label">FC <span style="font-size:10px;">bpm</span></div><div class="val" id="m-fc">--</div></div>
+            <div class="box-p c-pa" id="box-pa"><div class="label">PA <span style="font-size:10px;">mmHg</span></div><div class="val" id="m-pa" style="font-size: 52px;">--/--</div></div>
+            <div class="box-p c-spo2" id="box-spo2"><div class="label">SpO2 <span style="font-size:10px;">%</span></div><div class="val" id="m-spo2">--</div></div>
+            <div class="box-p c-fr"><div class="label">FR <span style="font-size:10px;">g/min</span></div><div class="val" id="m-fr">--</div></div>
+            <div class="box-p c-etco2"><div class="label">EtCO2 <span style="font-size:10px;">mmHg</span></div><div class="val" id="m-etco2">--</div></div>
+        </div>
+    </div>
+
+    <script>
+        const btnConnetti = document.getElementById('btn-connetti'), pinInput = document.getElementById('pin-monitor'), statoSetup = document.getElementById('stato-setup');
+        let peer = null, conn = null;
+        
+        let valoriAttuali = { fc: 65, pas: 120, spo2: 96 };
+        let audioCtx = null, allarmeInterval = null, allarmeSuonoAttivo = false;
+
+        // Stati interni Lifepack 35
+        let lp35Mode = "DEFIB"; // DEFIB, SYNC, PACING
+        let jouleSelezionati = 200;
+        let bpmSelezionati = 70;
+        let mASelezionati = 30;
+        let lp35Carico = false;
+
+        const jouleSetStandard = [5, 10, 25, 50, 100, 150, 200, 250, 300, 360];
+        const pacingBpmSet = [40, 50, 60, 70, 80, 90, 100];
+        const pacingMaSet = [10, 20, 30, 40, 50];
+
+        const mappeImmagini = {
+            "Sinusale": "sinusale.png", "Sinusale tact": "sinusale_tachi.png", "Sinusale brac": "sinusale_bradi.png",
+            "Non in lettura": "non_in_lettura.png", "Asistolia": "asistolia.png", "TV con polso": "tv_polso.png",
+            "TV senza polso": "tv_senza_polso.png", "FV": "fv.png", "IMA": "stemi.png", "TPSV": "tpsv.png",
+            "Fibrillazione": "fa.png", "Flutter atriale": "flutter.png", "Torsione di punta": "torsione.png", "BAV 3": "bav3.png"
+        };
+
+        function initAudio() { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } }
+
+        function suonaAudioTerapia(tipo) {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine';
+            if (tipo === 'clic') {
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (tipo === 'carica') {
+                osc.frequency.setValueAtTime(320, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(1300, audioCtx.currentTime + 2.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 2.2);
+            } else if (tipo === 'pronto') {
+                osc.frequency.setValueAtTime(1040, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            } else if (tipo === 'scarica') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, audioCtx.currentTime); gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (tipo === 'allarme') {
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        // Generazione Dinamica della Tastiera stile screenshot utente
+        function rigeneraTastieraTerapia() {
+            const tastiera = document.getElementById('tastiera-dinamica');
+            tastiera.innerHTML = "";
+
+            if (lp35Mode === "DEFIB" || lp35Mode === "SYNC") {
+                // Genera i 10 bottoni dei Joule
+                jouleSetStandard.forEach(j => {
+                    const b = document.createElement('button');
+                    b.className = "btn-energia";
+                    b.innerText = j + " Joule";
+                    b.onclick = () => { suonaAudioTerapia('clic'); jouleSelezionati = j; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+            } else if (lp35Mode === "PACING") {
+                // Unisci set Bpm e set mA per riempire la griglia
+                pacingBpmSet.forEach(bpm => {
+                    const b = document.createElement('button');
+                    b.className = "btn-energia";
+                    b.style.background = "#24468a";
+                    b.innerText = bpm + " Bpm";
+                    b.onclick = () => { suonaAudioTerapia('clic'); bpmSelezionati = bpm; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+                pacingMaSet.forEach(ma => {
+                    const b = document.createElement('button');
+                    b.className = "btn-energia";
+                    b.style.background = "#1b5237"; // Colore verde di stacco per i mA output
+                    b.innerText = ma + " mA";
+                    b.onclick = () => { suonaAudioTerapia('clic'); mASelezionati = ma; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+            }
+        }
+
+        function impostaLp35Mode(nuovaMode) {
+            suonaAudioTerapia('clic');
+            lp35Mode = nuovaMode;
+            
+            document.querySelectorAll('.tab-mode').forEach(t => t.classList.remove('attivo'));
+            document.getElementById('tab-' + nuovaMode.toLowerCase()).classList.add('attivo');
+
+            annullaCaricaLP35();
+            aggiornaInterfacciaLP35();
+            rigeneraTastieraTerapia();
+            segnalaAzioneAlRegista("Cambio Modalità: " + nuovaMode);
+        }
+
+        function aggiornaInterfacciaLP35() {
+            const dispEnergia = document.getElementById('display-lp35-energia');
+            const dispBpm = document.getElementById('display-lp35-bpm');
+            const containerBpm = document.getElementById('container-box-bpm');
+            const labelBoxEnergia = document.getElementById('label-box-energia');
+
+            if (lp35Mode === "DEFIB" || lp35Mode === "SYNC") {
+                containerBpm.style.display = "none";
+                labelBoxEnergia.innerHTML = "Seleziona<br>energia";
+                dispEnergia.innerText = jouleSelezionati ? jouleSelezionati + " Joule" : "--- Joule";
+            } else if (lp35Mode === "PACING") {
+                containerBpm.style.display = "flex";
+                labelBoxEnergia.innerHTML = "Seleziona<br>corrente";
+                dispBpm.innerText = bpmSelezionati + " Bpm";
+                dispEnergia.innerText = mASelezionati + " mA";
+            }
+        }
+
+        function avviaCaricaLP35() {
+            if (lp35Mode === "PACING") return;
+            if (lp35Carico) return;
+
+            const dispEnergia = document.getElementById('display-lp35-energia');
+            const btnCarica = document.getElementById('btn-hw-carica');
+            
+            dispEnergia.innerText = "CARICA...";
+            suonaAudioTerapia('carica');
+
+            setTimeout(() => {
+                lp35Carico = true;
+                dispEnergia.innerText = "PRONTO";
+                suonaAudioTerapia('pronto');
+                
+                btnCarica.classList.add('pronto');
+                document.getElementById('btn-hw-scarica').className = "btn-hw btn-hw-scarica pronto";
+                segnalaAzioneAlRegista(`LP35 CARICO a ${jouleSelezionati}J in modalità ${lp35Mode}`);
+            }, 2200);
+        }
+
+        function eseguiScaricaLP35() {
+            if (!lp35Carico) return;
+            suonaAudioTerapia('scarica');
+            alert(`⚠️ SHOCK EROGATO: ${jouleSelezionati} JOULE ⚠️`);
+            segnalaAzioneAlRegista(`SCARICA EROGATA a ${jouleSelezionati}J in modalità ${lp35Mode}`);
+            annullaCaricaLP35();
+        }
+
+        function annullaCaricaLP35() {
+            lp35Carico = false;
+            document.getElementById('btn-hw-carica').classList.remove('pronto');
+            document.getElementById('btn-hw-scarica').className = "btn-hw btn-hw-scarica";
+            aggiornaInterfacciaLP35();
+        }
+
+        function segnalaAzioneAlRegista(messaggio) {
+            if (conn && conn.open) { conn.send({ azioneStudente: messaggio }); }
+        }
+
+        function valutaSoglieAllarme() {
+            const boxFc = document.getElementById('box-fc'); const boxPa = document.getElementById('box-pa'); const boxSpo2 = document.getElementById('box-spo2');
+            let fcInAllarme = (valoriAttuali.fc < 50 || valoriAttuali.fc > 110) && valoriAttuali.fc > 0;
+            let paInAllarme = (valoriAttuali.pas < 90 || valoriAttuali.pas > 180) && valoriAttuali.pas > 0;
+            let spo2InAllarme = (valoriAttuali.spo2 < 88) && valoriAttuali.spo2 > 0;
+
+            if (fcInAllarme) boxFc.className = "box-p allarme-rosso"; else boxFc.className = "box-p c-fc";
+            if (paInAllarme) boxPa.className = "box-p allarme-rosso"; else boxPa.className = "box-p c-pa";
+            if (spo2InAllarme) boxSpo2.className = "box-p allarme-rosso"; else boxSpo2.className = "box-p c-spo2";
+
+            if (fcInAllarme || paInAllarme || spo2InAllarme) {
+                if (!allarmeSuonoAttivo) { allarmeSuonoAttivo = true; allarmeInterval = setInterval(() => suonaAudioTerapia('allarme'), 800); }
+            } else {
+                if (allarmeSuonoAttivo) { allarmeSuonoAttivo = false; clearInterval(allarmeInterval); }
+            }
+        }
+
+        function aggiornaTracciatoVisivo(ritmo, fc) {
+            const img1 = document.getElementById('ecg-img-1'); const img2 = document.getElementById('ecg-img-2');
+            const plethScroller = document.getElementById('pleth-scroller'); const plethPiatta = document.getElementById('pleth-piatta');
+            
+            const nomeFile = mappeImmagini[ritmo] || "sinusale.png";
+            img1.src = "ritmi/" + nomeFile; img2.src = "ritmi/" + nomeFile;
+
+            if (fc === 0 || ritmo === "Non in lettura" || ritmo === "Asistolia" || ritmo === "TV senza polso" || ritmo === "FV" || ritmo === "Torsione di punta") {
+                plethScroller.style.display = "none"; plethPiatta.style.display = "block";
+            } else {
+                plethScroller.style.display = "flex"; plethPiatta.style.display = "none";
+            }
+
+            let secondiAnimazione = 15;
+            if (fc > 0) { secondiAnimazione = (60 / fc) * 18; }
+            document.querySelectorAll('.scroller-img').forEach(el => { el.style.animationDuration = secondiAnimazione + "s"; });
+        }
+
+        btnConnetti.addEventListener('click', () => {
+            const pin = pinInput.value.trim();
+            if(pin.length !== 4) return alert("Inserisci un PIN valido!");
+            statoSetup.innerText = "Connessione in corso...";
+            initAudio();
+
+            peer = new Peer("sim-monitor-" + pin);
+            peer.on('open', () => {
+                conn = peer.connect("sim-regista-" + pin);
+                conn.on('open', () => { document.getElementById('setup-screen').style.display = 'none'; });
+                
+                conn.on('data', (data) => {
+                    if(data.fc !== undefined) { valoriAttuali.fc = parseInt(data.fc); document.getElementById('m-fc').innerText = valoriAttuali.fc === 0 ? "0" : valoriAttuali.fc; }
+                    if(data.pas !== undefined && data.pad !== undefined) { valoriAttuali.pas = parseInt(data.pas); document.getElementById('m-pa').innerText = `${data.pas}/${data.pad}`; }
+                    if(data.spo2 !== undefined) { valoriAttuali.spo2 = parseInt(data.spo2); document.getElementById('m-spo2').innerText = valoriAttuali.spo2 === 0 ? "--" : valoriAttuali.spo2; }
+                    if(data.fr !== undefined) document.getElementById('m-fr').innerText = data.fr;
+                    if(data.etco2 !== undefined) document.getElementById('m-etco2').innerText = data.etco2;
+                    
+                    valutaSoglieAllarme();
+
+                    if(data.ritmo !== undefined) { 
+                        document.getElementById('info-ritmo').innerText = data.ritmo; 
+                        aggiornaTracciatoVisivo(data.ritmo, valoriAttuali.fc);
+                    }
+                });
+            });
+            peer.on('error', () => { statoSetup.innerText = "Errore PIN."; peer.destroy(); });
+        });
+
+        // Avvio Iniziale Interfaccia Terapia
+        rigeneraTastieraTerapia();
+        aggiornaInterfacciaLP35();
+    </script>
+</body>
+</html>
