@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Regista - Controller</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="text"], input[type="range"] { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .slider-val { font-size: 24px; font-weight: bold; text-align: center; color: #007bff; }
+    </style>
+</head>
+<body>
+
+    <h1>REGISTA / CONTROLLER</h1>
+
+    <!-- STEP 1: Connessione al Monitor -->
+    <div class="card">
+        <h3>1. Connetti al Monitor</h3>
+        <input type="text" id="monitor-id" placeholder="Inserisci l'ID visualizzato sul Monitor">
+        <button id="connect-btn">Connetti</button>
+        <p id="conn-status" style="color: red; font-weight: bold;"></p>
+    </div>
+
+    <!-- STEP 2: Controllo Parametri -->
+    <div class="card">
+        <h3>2. Modifica Parametri Vitali</h3>
+        <label>Frequenza Cardiaca (FC):</label>
+        <div id="fc-val" class="slider-val">75</div>
+        <input type="range" id="fc-slider" min="30" max="220" value="75" disabled>
+    </div>
+
+    <script>
+        const peer = new Peer();
+        let conn = null;
+
+        const connectBtn = document.getElementById('connect-btn');
+        const monitorIdInput = document.getElementById('monitor-id');
+        const connStatus = document.getElementById('conn-status');
+        const fcSlider = document.getElementById('fc-slider');
+        const fcVal = document.getElementById('fc-val');
+
+        // Azione di connessione
+        connectBtn.addEventListener('click', () => {
+            const targetId = monitorIdInput.value.trim();
+            if(!targetId) return alert("Inserisci un ID valido");
+
+            connStatus.innerText = "Tentativo di connessione...";
+            connStatus.style.color = "#ffaa00";
+
+            // Apriamo il canale P2P diretto con il monitor
+            conn = peer.connect(targetId);
+
+            conn.on('open', () => {
+                connStatus.innerText = "Connesso con successo al Monitor!";
+                connStatus.style.color = "green";
+                fcSlider.disabled = false; // Attiviamo lo slider
+            });
+
+            conn.on('error', (err) => {
+                connStatus.innerText = "Errore di connessione.";
+                connStatus.style.color = "red";
+            });
+        });
+
+        // Invia i dati ogni volta che sposti lo slider della FC
+        fcSlider.addEventListener('input', (e) => {
+            const valoreFC = e.target.value;
+            fcVal.innerText = valoreFC;
+
+            if (conn && conn.open) {
+                // Inviamo il dato pacchettizzato come oggetto JSON
+                conn.send({ fc: valoreFC });
+            }
+        });
+    </script>
+</body>
+</html>

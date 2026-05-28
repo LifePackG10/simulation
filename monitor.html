@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Simulatore</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            padding-top: 40px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #status {
+            background-color: #222;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            color: #ffcc00;
+            margin-bottom: 40px;
+            font-family: sans-serif;
+            line-height: 1.5;
+        }
+        .display-box {
+            border: 3px solid #333;
+            background-color: #0a0a0a;
+            padding: 30px;
+            display: inline-block;
+            border-radius: 15px;
+            min-width: 250px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        .label {
+            font-size: 18px;
+            color: #888888;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .parametro {
+            font-size: 110px;
+            font-weight: bold;
+            color: #00ff00; /* Verde classico da monitor medico */
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            line-height: 1;
+            margin: 10px 0;
+        }
+        .unita {
+            font-size: 20px;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>MONITOR PAZIENTE</h1>
+        
+        <div id="status">Generazione codice di rete in corso...</div>
+        
+        <div class="display-box">
+            <div class="label">FC</div>
+            <div id="fc-display" class="parametro">--</div>
+            <div class="unita">bpm</div>
+        </div>
+    </div>
+
+    <script>
+        // Inizializza PeerJS sul server pubblico gratuito
+        const peer = new Peer(); 
+
+        // Quando il server assegna un ID univoco a questo monitor, lo mostra a schermo
+        peer.on('open', (id) => {
+            document.getElementById('status').innerHTML = 
+                `Dispositivo pronto!<br>Inserisci questo codice nel Regista:<br>` +
+                `<span style="color:#00ffff; font-size:28px; font-weight:bold; letter-spacing:1px;">${id}</span>`;
+        });
+
+        // Resta in ascolto: quando il regista si connette...
+        peer.on('connection', (conn) => {
+            document.getElementById('status').innerText = "Regista Connesso! Simulazione in corso.";
+            document.getElementById('status').style.color = "#00ff00";
+            document.getElementById('status').style.borderColor = "#00ff00";
+
+            // Resta in ascolto dei dati inviati dal regista
+            conn.on('data', (data) => {
+                if (data.fc !== undefined) {
+                    // Aggiorna la Frequenza Cardiaca sul monitor
+                    document.getElementById('fc-display').innerText = data.fc;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
