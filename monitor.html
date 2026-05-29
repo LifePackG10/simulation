@@ -3,101 +3,555 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Simulatore</title>
+    <title>Monitor Lifepack G10 v9.6 - Pressione Statica</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: center;
-            padding-top: 40px;
-            margin: 0;
+        body { background-color: #000; color: #fff; font-family: 'Arial', sans-serif; margin: 0; padding: 10px; height: 100vh; box-sizing: border-box; display: flex; overflow: hidden; user-select: none; }
+        #setup-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .setup-card { background: #222; padding: 40px; border-radius: 12px; text-align: center; }
+        input[type="number"] { width: 150px; padding: 10px; font-size: 28px; text-align: center; border-radius: 6px; margin: 15px 0; background: #000; color: #fff; border: 1px solid #444; }
+        .btn-connect { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 6px; font-size: 20px; cursor: pointer; font-weight: bold; }
+        
+        #monitor-screen { display: grid; grid-template-columns: 220px 1fr; width: 100%; height: 100%; gap: 15px; }
+        
+        .parametri-container { display: flex; flex-direction: column; justify-content: space-between; height: 100%; gap: 6px; grid-column: 1; }
+        .box-p-row { display: flex; background: #000; border-radius: 4px; overflow: hidden; height: 19%; min-height: 60px; }
+        .param-label-block { width: 50px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: #fff; text-transform: uppercase; text-align: center; }
+        .param-value-block { flex: 1; display: flex; align-items: center; padding-left: 15px; background: #000; }
+        .val { font-size: 56px; font-weight: bold; font-family: 'Arial Black', sans-serif; line-height: 1; }
+        
+        .bg-fc { background-color: #2ecc71; }
+        .bg-pa { background-color: #95a5a6; }
+        .bg-spo2 { background-color: #2980b9; }
+        .bg-fr { background-color: #f1c40f; }
+        .bg-etco2 { background-color: #e67e22; }
+        
+        .text-fc { color: #2ecc71; }
+        .text-pa { color: #ffffff; }
+        .text-spo2 { color: #ffffff; }
+        .text-etco2 { color: #ffffff; }
+        
+        .centro-destra-container { display: flex; flex-direction: column; height: 100%; gap: 10px; overflow: hidden; grid-column: 2; }
+        
+        .tracciati-container { 
+            height: 65%; 
+            display: grid; 
+            grid-template-rows: repeat(5, 1fr); 
+            gap: 6px; 
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        #status {
-            background-color: #222;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            color: #ffcc00;
-            margin-bottom: 40px;
-            font-family: sans-serif;
-            line-height: 1.5;
-        }
-        .display-box {
-            border: 3px solid #333;
-            background-color: #0a0a0a;
-            padding: 30px;
-            display: inline-block;
-            border-radius: 15px;
-            min-width: 250px;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
-        }
-        .label {
-            font-size: 18px;
-            color: #888888;
-            font-weight: bold;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-        }
-        .parametro {
-            font-size: 110px;
-            font-weight: bold;
-            color: #00ff00; /* Verde classico da monitor medico */
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-            line-height: 1;
-            margin: 10px 0;
-        }
-        .unita {
-            font-size: 20px;
-            color: #00ff00;
-        }
+        
+        #riga-onda-ecg { grid-row: 1; }   
+        #riga-onda-pleth { grid-row: 2; } 
+        
+        .onde-row { position: relative; background: #050505; border-radius: 6px; border: 1px solid #111; overflow: hidden; display: flex; align-items: center; height: 100%; }
+        .titolo-onda { position: absolute; top: 6px; left: 12px; font-size: 14px; font-weight: bold; z-index: 10; background: rgba(5,5,5,0.6); padding: 2px 5px; border-radius: 3px; }
+        
+        .scroller-wrapper { display: flex; width: 200%; height: 100%; position: relative; align-items: center; }
+        .scroller-img { height: 100%; width: 50%; object-fit: contain; animation: scorrimentoContinuo 15s linear infinite; }
+        @keyframes scorrimentoContinuo { 0% { transform: translateX(0%); } 100% { transform: translateX(-100%); } }
+        
+        .linea-piatta { width: 100%; height: 2px; position: absolute; top: 50%; left: 0; display: none; }
+        #ecg-piatta { background: #2ecc71; }
+        #pleth-piatta { background: #2980b9; }
+
+        .terapia-container { height: 33%; background: #1a3668; border: 3px solid #112244; border-radius: 8px; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; }
+        .terapia-tabs { display: flex; height: 40px; background: #112244; border-bottom: 2px solid #0d1b33; }
+        .tab-mode { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #a4b3d6; cursor: pointer; transition: all 0.2s; border-right: 1px solid #1a3668; text-transform: uppercase; }
+        .tab-mode:last-child { border-right: none; }
+        .tab-mode.attivo { background: #ffff00; color: #000; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2); }
+
+        .terapia-body { flex: 1; display: flex; padding: 10px; gap: 12px; align-items: center; justify-content: space-between; }
+        .interfaccia-valori { flex: 1; display: flex; gap: 12px; height: 100%; align-items: center; }
+
+        .box-visualizzazione { background: #4a77cc; border-radius: 16px; border: 2px solid #365da8; padding: 10px; width: 140px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; box-sizing: border-box; }
+        .label-terapia { color: #fff; font-size: 13px; font-weight: bold; text-align: center; line-height: 1.2; text-transform: uppercase; }
+        .schermo-nero { background: #000; border-radius: 10px; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 22px; font-weight: bold; color: #ffff00; border: 1px solid #224488; }
+        
+        .tastiera-energie { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(2, 1fr); gap: 6px; height: 100%; }
+        .btn-energia { background: #3b65b8; border: 1px solid #294c94; color: #fff; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+        .btn-energia:hover { background: #4a77cc; }
+        .btn-energia:active { background: #ffff00; color: #000; }
+
+        .colonna-hardware-buttons { display: flex; flex-direction: column; justify-content: center; gap: 4px; height: 100%; min-width: 110px; }
+        .btn-hw { width: 100%; height: 28px; border-radius: 6px; border: 2px solid #222; color: white; font-weight: bold; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; box-shadow: 0 3px 5px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        .btn-hw:active { transform: scale(0.95); }
+        
+        .btn-hw-carica { background: #e67e22; border-color: #d35400; height: 32px; }
+        .btn-hw-carica.pronto { animation: flashArancio 0.4s infinite alternate; }
+        
+        .btn-hw-scarica { background: #c0392b; border-color: #962d22; font-size: 12px; opacity: 0.3; cursor: not-allowed; height: 32px; }
+        .btn-hw-scarica.pronto { opacity: 1; cursor: pointer; animation: flashRossoTerapia 0.3s infinite alternate; }
+
+        .btn-hw-psni { background: #f39c12; border-color: #d35400; color: #000; font-size: 12px; font-weight: bold; }
+        .btn-hw-psni.misurazione-in-corso { background: #7f8c8d; border-color: #34495e; color: #fff; cursor: not-allowed; animation: flashGrigioPsni 0.6s infinite alternate; }
+
+        .btn-hw-analisi { background: #f1c40f; border-color: #f39c12; color: #000; font-size: 12px; font-weight: 900; }
+
+        @keyframes flashGrigioPsni { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes flashArancio { 0% { background-color: #e67e22; } 100% { background-color: #ffaa44; } }
+        @keyframes flashRossoTerapia { 0% { background-color: #c0392b; box-shadow: 0 0 4px #ff0000; } 100% { background-color: #ff0000; box-shadow: 0 0 15px #ff0000; } }
+
+        .allarme-attivo .param-label-block { animation: lampeggioRossoLabel 0.5s infinite alternate; }
+        @keyframes lampeggioRossoLabel { 0% { background-color: #b30000; color: #fff; } 100% { background-color: #ff0000; color: #fff; } }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>MONITOR PAZIENTE</h1>
-        
-        <div id="status">Generazione codice di rete in corso...</div>
-        
-        <div class="display-box">
-            <div class="label">FC</div>
-            <div id="fc-display" class="parametro">--</div>
-            <div class="unita">bpm</div>
+    <div id="setup-screen">
+        <div class="setup-card">
+            <h2>Lifepack G10 - Monitor</h2>
+            <p>Inserisci il PIN del Regista per accoppiare gli schermi:</p>
+            <input type="number" id="pin-monitor" value="1234">
+            <br>
+            <button class="btn-connect" id="btn-connetti">Sincronizza Monitor</button>
+            <p id="stato-setup" style="color: #888; margin-top: 15px;"></p>
         </div>
     </div>
 
+    <div id="monitor-screen">
+        <div class="parametri-container">
+            <div class="box-p-row" id="row-fc">
+                <div class="param-label-block bg-fc">HR</div>
+                <div class="param-value-block"><div class="val text-fc" id="m-fc">--</div></div>
+            </div>
+            <div class="box-p-row" id="row-spo2">
+                <div class="param-label-block bg-spo2">SpO2</div>
+                <div class="param-value-block"><div class="val text-spo2" id="m-spo2">--</div></div>
+            </div>
+            <div class="box-p-row" id="row-etco2">
+                <div class="param-label-block bg-etco2">EtCO2</div>
+                <div class="param-value-block"><div class="val text-etco2" id="m-etco2">--</div></div>
+            </div>
+            <div class="box-p-row" id="row-fr">
+                <div class="param-label-block bg-fr">FR</div>
+                <div class="param-value-block"><div class="val" id="m-fr" style="color:#f1c40f;">--</div></div>
+            </div>
+            <div class="box-p-row" id="row-pa">
+                <div class="param-label-block bg-pa">NIBP</div>
+                <div class="param-value-block"><div class="val text-pa" id="m-pa" style="font-size: 34px;">--/--</div></div>
+            </div>
+        </div>
+
+        <div class="centro-destra-container">
+            <div class="tracciati-container">
+                <div class="onde-row" id="riga-onda-ecg">
+                    <div class="titolo-onda text-fc">II</div>
+                    <div id="ecg-scroller" class="scroller-wrapper" style="display: none;">
+                        <img id="ecg-img-1" class="scroller-img" src="ritmi/sinusale.png" alt="ECG">
+                        <img id="ecg-img-2" class="scroller-img" src="ritmi/sinusale.png" alt="ECG">
+                    </div>
+                    <div id="ecg-piatta" class="linea-piatta" style="display: block;"></div>
+                </div>
+                
+                <div class="onde-row" id="riga-onda-pleth">
+                    <div class="titolo-onda" style="color: #2980b9;">PLETH</div>
+                    <div id="pleth-scroller" class="scroller-wrapper" style="display: none;">
+                        <img id="pleth-img-1" class="scroller-img" src="ritmi/sinusale_pleth.png" style="filter: hue-rotate(90deg);" alt="Pleth">
+                        <img id="pleth-img-2" class="scroller-img" src="ritmi/sinusale_pleth.png" style="filter: hue-rotate(90deg);" alt="Pleth">
+                    </div>
+                    <div id="pleth-piatta" class="linea-piatta" style="display: block;"></div>
+                </div>
+            </div>
+
+            <div class="terapia-container">
+                <div class="terapia-tabs">
+                    <div class="tab-mode attivo" id="tab-defib" onclick="impostaLp35Mode('DEFIB')">Defib</div>
+                    <div class="tab-mode" id="tab-sync" onclick="impostaLp35Mode('SYNC')">Sync</div>
+                    <div class="tab-mode" id="tab-pacing" onclick="impostaLp35Mode('PACING')">Pacing</div>
+                </div>
+
+                <div class="terapia-body">
+                    <div class="interfaccia-valori">
+                        <div class="box-visualizzazione" id="container-box-bpm" style="visibility: hidden; width: 0px; padding: 0; border: none;">
+                            <div class="schermo-nero" id="display-lp35-bpm">-- Bpm</div>
+                            <div class="label-terapia">Frequenza</div>
+                        </div>
+                        <div class="box-visualizzazione" id="container-box-energia">
+                            <div class="schermo-nero" id="display-lp35-energia">200 J</div>
+                            <div class="label-terapia" id="label-box-energia">Seleziona energia</div>
+                        </div>
+                        <div class="tastiera-energie" id="tastiera-dinamica"></div>
+                    </div>
+                    <div class="colonna-hardware-buttons">
+                        <button class="btn-hw btn-hw-carica" id="btn-hw-carica" onclick="avviaCaricaLP35()">⚡ CARICA</button>
+                        <button class="btn-hw btn-hw-scarica" id="btn-hw-scarica" onclick="eseguiScaricaLP35()">⚡ SCARICA</button>
+                        <button class="btn-hw btn-hw-psni" id="btn-hw-psni" onclick="avviaMisurazionePSNI()">🩺 PSNI</button>
+                        <button class="btn-hw btn-hw-analisi" id="btn-hw-analisi" onclick="eseguiAnalisiRitmo()">🔎 ANALISI</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-carica-file" src="suoni/CaricaDefibrillatore.mp3" preload="auto"></audio>
+    <audio id="audio-bracciale-file" src="suoni/AudioBracciale.mp3" preload="auto"></audio>
+    <audio id="audio-consigliato" src="suoni/ShockConsigliato.mp3" preload="auto"></audio>
+    <audio id="audio-non-consigliato" src="suoni/ShockNonConsigliato.mp3" preload="auto"></audio>
+
     <script>
-        // Inizializza PeerJS sul server pubblico gratuito
-        const peer = new Peer(); 
+        const btnConnetti = document.getElementById('btn-connetti'), pinInput = document.getElementById('pin-monitor'), statoSetup = document.getElementById('stato-setup');
+        let peer = null, conn = null;
+        let ecgIsConnected = false;
+        let spo2IsConnected = false;
+        let etco2IsConnected = false;
+        
+        let targetPAS = 120;
+        let targetPAD = 80;
+        let psniInCorso = false;
+        let haMisuratoAlmenoUnaVolta = false;
+        let ritmoCorrente = "Sinusale";
 
-        // Quando il server assegna un ID univoco a questo monitor, lo mostra a schermo
-        peer.on('open', (id) => {
-            document.getElementById('status').innerHTML = 
-                `Dispositivo pronto!<br>Inserisci questo codice nel Regista:<br>` +
-                `<span style="color:#00ffff; font-size:28px; font-weight:bold; letter-spacing:1px;">${id}</span>`;
-        });
+        // Variabili d'appoggio per memorizzare la pressione visualizzata sul monitor
+        let pressioneVisualizzataPAS = "--";
+        let pressioneVisualizzataPAD = "--";
 
-        // Resta in ascolto: quando il regista si connette...
-        peer.on('connection', (conn) => {
-            document.getElementById('status').innerText = "Regista Connesso! Simulazione in corso.";
-            document.getElementById('status').style.color = "#00ff00";
-            document.getElementById('status').style.borderColor = "#00ff00";
+        let valoriAttuali = { fc: 0, pas: 0, spo2: 0, etco2: 0 };
+        let audioCtx = null, allarmeInterval = null, allarmeSuonoAttivo = false;
+        let lp35Mode = "DEFIB", jouleSelezionati = 200, bpmSelezionati = 70, mASelezionati = 30, lp35Carico = false;
 
-            // Resta in ascolto dei dati inviati dal regista
-            conn.on('data', (data) => {
-                if (data.fc !== undefined) {
-                    // Aggiorna la Frequenza Cardiaca sul monitor
-                    document.getElementById('fc-display').innerText = data.fc;
+        const jouleSetStandard = [5, 10, 25, 50, 100, 150, 200, 250, 300, 360];
+        const pacingBpmSet = [40, 50, 60, 70, 80, 90, 100];
+        const pacingMaSet = [10, 20, 30, 40, 50];
+
+        const mappeImmagini = {
+            "Sinusale": "sinusale.png", "Sinusale tact": "sinusale_tachi.png", "Sinusale brac": "sinusale_bradi.png",
+            "Non in lettura": "non_in_lettura.png", "Asistolia": "asistolia.png", "TV con polso": "tv_polso.png",
+            "TV senza polso": "tv_senza_polso.png", "FV": "fv.png", "IMA": "stemi.png", "TPSV": "tpsv.png",
+            "Fibrillazione": "fa.png", "Flutter atriale": "flutter.png", "Torsione di punta": "torsione.png", "BAV 3": "bav3.png"
+        };
+
+        const mappeImmaginiSincro = {
+            "Sinusale": "sinusale_sincro.png", "Sinusale tact": "sinusale_tachi_sincro.png", "Sinusale brac": "sinusale_bradi_sincro.png",
+            "TV con polso": "tv_polso_sincro.png", "IMA": "stemi_sincro.png", "TPSV": "tpsv_sincro.png",
+            "Fibrillazione": "fa_sincro.png", "Flutter atriale": "flutter_sincro.png", "BAV 3": "bav3_sincro.png"
+        };
+
+        const mappePleth = {
+            "Sinusale": "sinusale_pleth.png", "Sinusale tact": "sinusale_tachi_pleth.png", "Sinusale brac": "sinusale_bradi_pleth.png",
+            "TV con polso": "tv_polso_pleth.png", "IMA": "stemi_pleth.png", "TPSV": "tpsv_pleth.png",
+            "Fibrillazione": "fa_pleth.png", "Flutter atriale": "flutter_pleth.png", "BAV 3": "bav3_pleth.png"
+        };
+
+        function initAudio() { 
+            if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
+        }
+
+        function suonaAudioTerapia(tipo) {
+            initAudio(); if (!audioCtx) return;
+            
+            if (tipo === 'clic') {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.connect(gain);
+                gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (tipo === 'carica') {
+                const audioFile = document.getElementById('audio-carica-file');
+                audioFile.currentTime = 0; audioFile.play().catch(e => console.log("Errore audio carica:", e));
+            } else if (tipo === 'pronto') {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1040, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime); osc.connect(gain);
+                gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            } else if (tipo === 'scarica') {
+                let bufferSize = audioCtx.sampleRate * 0.25;
+                let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                let data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    let t = i / audioCtx.sampleRate, rumore = Math.random() * 2 - 1;
+                    let ondaQuadra = Math.sin(2 * Math.PI * 50 * t) > 0 ? 0.5 : -0.5;
+                    data[i] = (rumore * 0.4 + ondaQuadra * 0.6) * Math.exp(-15 * t);
                 }
+                let rumoreNode = audioCtx.createBufferSource(); rumoreNode.buffer = buffer;
+                let biquad = audioCtx.createBiquadFilter(); biquad.type = "lowpass"; biquad.frequency.setValueAtTime(800, audioCtx.currentTime);
+                let gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+                rumoreNode.connect(biquad); biquad.connect(gain); gain.connect(audioCtx.destination); rumoreNode.start();
+            } else if (tipo === 'allarme') {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        function eseguiAnalisiRitmo() {
+            suonaAudioTerapia('clic');
+            if (!ecgIsConnected) {
+                segnalaAzioneAlRegista("Tentata ANALISI ma i cavi ECG sono SCOLLEGATI!");
+                return;
+            }
+            segnalaAzioneAlRegista("Avviata analisi del ritmo ECG...");
+            const ritmiDefibrillabili = ["FV", "TV senza polso", "TV con polso", "Torsione di punta"];
+            
+            document.getElementById('audio-consigliato').pause();
+            document.getElementById('audio-non-consigliato').pause();
+            document.getElementById('audio-consigliato').currentTime = 0;
+            document.getElementById('audio-non-consigliato').currentTime = 0;
+
+            if (ritmiDefibrillabili.includes(ritmoCorrente)) {
+                document.getElementById('audio-consigliato').play().catch(e => console.log(e));
+                segnalaAzioneAlRegista("Risultato Analisi: SHOCK CONSIGLIATO ⚡");
+            } else {
+                document.getElementById('audio-non-consigliato').play().catch(e => console.log(e));
+                segnalaAzioneAlRegista("Risultato Analisi: SHOCK NON CONSIGLIATO ❌");
+            }
+        }
+
+        function rigeneraTastieraTerapia() {
+            const tastiera = document.getElementById('tastiera-dinamica'); tastiera.innerHTML = "";
+            if (lp35Mode === "DEFIB" || lp35Mode === "SYNC") {
+                jouleSetStandard.forEach(j => {
+                    const b = document.createElement('button'); b.className = "btn-energia"; b.innerText = j + " J";
+                    b.onclick = () => { suonaAudioTerapia('clic'); jouleSelezionati = j; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+            } else if (lp35Mode === "PACING") {
+                pacingBpmSet.forEach(bpm => {
+                    const b = document.createElement('button'); b.className = "btn-energia"; b.style.background = "#24468a"; b.innerText = bpm + " Bpm";
+                    b.onclick = () => { suonaAudioTerapia('clic'); bpmSelezionati = bpm; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+                pacingMaSet.forEach(ma => {
+                    const b = document.createElement('button'); b.className = "btn-energia"; b.style.background = "#1b5237"; b.innerText = ma + " mA";
+                    b.onclick = () => { suonaAudioTerapia('clic'); mASelezionati = ma; aggiornaInterfacciaLP35(); };
+                    tastiera.appendChild(b);
+                });
+            }
+        }
+
+        function impostaLp35Mode(nuovaMode) {
+            suonaAudioTerapia('clic'); lp35Mode = nuovaMode;
+            document.querySelectorAll('.tab-mode').forEach(t => t.classList.remove('attivo'));
+            document.getElementById('tab-' + nuevaMode.toLowerCase()).classList.add('attivo');
+            annullaCaricaLP35(); 
+            aggiornaInterfacciaLP35(); 
+            rigeneraTastieraTerapia();
+            
+            aggiornaTracciatoVisivo(ritmoCorrente, valoriAttuali.fc, ecgIsConnected, spo2IsConnected);
+            segnalaAzioneAlRegista("Cambio Modalità: " + nuovaMode);
+        }
+
+        function aggiornaInterfacciaLP35() {
+            const dispEnergia = document.getElementById('display-lp35-energia'), dispBpm = document.getElementById('display-lp35-bpm');
+            const containerBpm = document.getElementById('container-box-bpm'), boxEnergia = document.getElementById('container-box-energia'), labelBoxEnergia = document.getElementById('label-box-energia');
+            if (lp35Mode === "DEFIB" || lp35Mode === "SYNC") {
+                containerBpm.style.visibility = "hidden"; containerBpm.style.width = "0px"; containerBpm.style.padding = "0";
+                boxEnergia.style.width = "140px"; labelBoxEnergia.innerHTML = "Seleziona energia";
+                dispEnergia.innerText = jouleSelezionati ? jouleSelezionati + " J" : "--- J";
+            } else if (lp35Mode === "PACING") {
+                containerBpm.style.visibility = "visible"; containerBpm.style.width = "110px"; containerBpm.style.padding = "10px"; containerBpm.style.border = "2px solid #365da8";
+                boxEnergia.style.width = "110px"; labelBoxEnergia.innerHTML = "Corrente";
+                dispBpm.innerText = bpmSelezionati + " Bpm"; dispEnergia.innerText = mASelezionati + " mA";
+            }
+        }
+
+        function avviaCaricaLP35() {
+            if (lp35Mode === "PACING" || lp35Carico) return;
+            const dispEnergia = document.getElementById('display-lp35-energia'), btnCarica = document.getElementById('btn-hw-carica'), btnScarica = document.getElementById('btn-hw-scarica');
+            dispEnergia.innerText = "CARICA..."; suonaAudioTerapia('carica');
+            setTimeout(() => {
+                if (dispEnergia.innerText !== "CARICA...") return;
+                lp35Carico = true; dispEnergia.innerText = "PRONTO"; suonaAudioTerapia('pronto');
+                btnCarica.classList.add('pronto'); btnScarica.classList.add('pronto');
+                segnalaAzioneAlRegista(`LP35 CARICO a ${jouleSelezionati}J in modalità ${lp35Mode}`);
+            }, 2500);
+        }
+
+        function eseguiScaricaLP35() {
+            if (!lp35Carico) return;
+            document.getElementById('audio-carica-file').pause(); 
+            suonaAudioTerapia('scarica');
+            
+            if (conn && conn.open) { 
+                conn.send({ 
+                    azioneStudente: `SCARICA EROGATA a ${jouleSelezionati}J in modalità ${lp35Mode}`,
+                    datiScarica: {
+                        joule: jouleSelezionati,
+                        modalita: lp35Mode
+                    }
+                }); 
+            }
+            annullaCaricaLP35();
+        }
+
+        function annullaCaricaLP35() {
+            lp35Carico = false; document.getElementById('audio-carica-file').pause();
+            document.getElementById('btn-hw-carica').classList.remove('pronto'); document.getElementById('btn-hw-scarica').classList.remove('pronto');
+            aggiornaInterfacciaLP35();
+        }
+
+        function avviaMisurazionePSNI() {
+            if (psniInCorso) return;
+            initAudio(); psniInCorso = true;
+            segnalaAzioneAlRegista("Avviata misurazione Pressione (PSNI)");
+            
+            const btnPsni = document.getElementById('btn-hw-psni');
+            const displayPa = document.getElementById('m-pa');
+            btnPsni.classList.add('misurazione-in-corso');
+
+            const audioBracciale = document.getElementById('audio-bracciale-file');
+            audioBracciale.currentTime = 0;
+            audioBracciale.play().catch(e => console.error("Errore audio bracciale:", e));
+
+            let pressioneAttuale = 0;
+            const piccoMassimo = targetPAS + 20;
+
+            let intervalloGonfiaggio = setInterval(() => {
+                pressioneAttuale += Math.floor(Math.random() * 12) + 8;
+                if (pressioneAttuale >= piccoMassimo) {
+                    pressioneAttuale = piccoMassimo;
+                    clearInterval(intervalloGonfiaggio);
+                    setTimeout(() => { avviaSgonfiaggioPSNI(pressioneAttuale); }, 600);
+                }
+                displayPa.innerText = `CUFF: ${pressioneAttuale}`;
+            }, 150);
+        }
+
+        function avviaSgonfiaggioPSNI(partenza) {
+            const displayPa = document.getElementById('m-pa');
+            let pressioneAttuale = partenza;
+
+            let intervalloSgonfiaggio = setInterval(() => {
+                pressioneAttuale -= Math.floor(Math.random() * 4) + 3;
+                if (pressioneActuale <= targetPAD) {
+                    clearInterval(intervalloSgonfiaggio);
+                    document.getElementById('audio-bracciale-file').pause();
+                    psniInCorso = false; haMisuratoAlmenoUnaVolta = true;
+                    document.getElementById('btn-hw-psni').classList.remove('misurazione-in-corso');
+                    
+                    // ACQUISIZIONE STATICA: Solo ora salviamo e stampiamo i valori correnti della regia
+                    valoriAttuali.pas = targetPAS;
+                    pressioneVisualizzataPAS = targetPAS;
+                    pressioneVisualizzataPAD = targetPAD;
+                    
+                    displayPa.innerText = `${pressioneVisualizzataPAS}/${pressioneVisualizzataPAD}`;
+                    valutaSoglieAllarme();
+                    segnalaAzioneAlRegista(`Misurazione completata: Rilevata PA ${targetPAS}/${targetPAD} mmHg`);
+                } else {
+                    displayPa.innerText = `CUFF: ${pressioneAttuale}`;
+                }
+            }, 200);
+        }
+
+        function segnalaAzioneAlRegista(messaggio) { if (conn && conn.open) { conn.send({ azioneStudente: messaggio }); } }
+
+        function valutaSoglieAllarme() {
+            const rowFc = document.getElementById('row-fc'), rowPa = document.getElementById('row-pa'), rowSpo2 = document.getElementById('row-spo2'), rowEtco2 = document.getElementById('row-etco2');
+            
+            let fcInAllarme = ecgIsConnected && (valoriAttuali.fc < 50 || valoriAttuali.fc > 110);
+            let paInAllarme = ecgIsConnected && !psniInCorso && haMisuratoAlmenoUnaVolta && (valoriAttuali.pas < 90 || valoriAttuali.pas > 180);
+            let spo2InAllarme = spo2IsConnected && (valoriAttuali.spo2 < 88);
+            let etco2InAllarme = etco2IsConnected && (valoriAttuali.etco2 < 30 || valoriAttuali.etco2 > 45);
+
+            if (fcInAllarme) rowFc.classList.add('allarme-attivo'); else rowFc.classList.remove('allarme-attivo');
+            if (paInAllarme) rowPa.classList.add('allarme-attivo'); else rowPa.classList.remove('allarme-attivo');
+            if (spo2InAllarme) rowSpo2.classList.add('allarme-attivo'); else rowSpo2.classList.remove('allarme-attivo');
+            if (etco2InAllarme) rowEtco2.classList.add('allarme-attivo'); else rowEtco2.classList.remove('allarme-attivo');
+
+            if (fcInAllarme || paInAllarme || spo2InAllarme || etco2InAllarme) {
+                if (!allarmeSuonoAttivo) { allarmeSuonoAttivo = true; allarmeInterval = setInterval(() => suonaAudioTerapia('allarme'), 800); }
+            } else { if (allarmeSuonoAttivo) { allarmeSuonoAttivo = false; clearInterval(allarmeInterval); } }
+        }
+
+        function aggiornaTracciatoVisivo(ritmo, fc, ecgConnected, spo2Connected) {
+            const img1 = document.getElementById('ecg-img-1'), img2 = document.getElementById('ecg-img-2');
+            const plethImg1 = document.getElementById('pleth-img-1'), plethImg2 = document.getElementById('pleth-img-2');
+            
+            const ecgScroller = document.getElementById('ecg-scroller'), ecgPiatta = document.getElementById('ecg-piatta');
+            const plethScroller = document.getElementById('pleth-scroller'), plethPiatta = document.getElementById('pleth-piatta');
+            
+            if (ecgConnected === false) {
+                ecgScroller.style.display = "none"; ecgPiatta.style.display = "block";
+            } else {
+                ecgScroller.style.display = "flex"; ecgPiatta.style.display = "none";
+                
+                let nomeFileECG = mappeImmagini[ritmo] || "sinusale.png";
+                if (lp35Mode === "SYNC") {
+                    if (mappeImmaginiSincro[ritmo]) {
+                        nomeFileECG = mappeImmaginiSincro[ritmo];
+                    } else if (nomeFileECG.endsWith(".png")) {
+                        nomeFileECG = nomeFileECG.replace(".png", "_sincro.png");
+                    }
+                }
+                
+                img1.src = "ritmi/" + nomeFileECG; 
+                img2.src = "ritmi/" + nomeFileECG;
+            }
+
+            const ritmiSenzaPolso = ["Non in lettura", "Asistolia", "TV senza polso", "FV", "Torsione di punta"];
+            
+            if (spo2Connected === false || fc === 0 || ritmiSenzaPolso.includes(ritmo)) {
+                plethScroller.style.display = "none"; plethPiatta.style.display = "block";
+            } else {
+                plethScroller.style.display = "flex"; plethPiatta.style.display = "none";
+                const nomeFilePleth = mappePleth[ritmo] || "sinusale_pleth.png";
+                plethImg1.src = "ritmi/" + nomeFilePleth; plethImg2.src = "ritmi/" + nomeFilePleth;
+            }
+            
+            let secondiAnimazione = 15; if (fc > 0) { secondiAnimazione = (60 / fc) * 18; }
+            document.querySelectorAll('.scroller-img').forEach(el => { el.style.animationDuration = secondiAnimazione + "s"; });
+        }
+
+        btnConnetti.addEventListener('click', () => {
+            const pin = pinInput.value.trim(); if(pin.length !== 4) return alert("PIN Errato");
+            statoSetup.innerText = "Connessione..."; initAudio(); 
+            peer = new Peer("sim-monitor-" + pin);
+            peer.on('open', () => {
+                conn = peer.connect("sim-regista-" + pin);
+                conn.on('open', () => { document.getElementById('setup-screen').style.display = 'none'; });
+                conn.on('data', (data) => {
+                    if(data.ecgConnected !== undefined) ecgIsConnected = data.ecgConnected;
+                    if(data.spo2Connected !== undefined) spo2IsConnected = data.spo2Connected;
+                    if(data.etco2Connected !== undefined) etco2IsConnected = data.etco2Connected;
+
+                    if(data.fc !== undefined) { 
+                        valoriAttuali.fc = parseInt(data.fc); 
+                        document.getElementById('m-fc').innerText = (!ecgIsConnected) ? "--" : (valoriAttuali.fc === 0 ? "0" : valoriAttuali.fc); 
+                    }
+                    
+                    // Memorizziamo i target in background ma NON li stampiamo a schermo
+                    if(data.pas !== undefined) targetPAS = parseInt(data.pas);
+                    if(data.pad !== undefined) targetPAD = parseInt(data.pad);
+                    
+                    // Gestione del display NIBP: si aggiorna solo se non c'è una cuffia attiva in questo istante
+                    if(!psniInCorso) {
+                        if (!haMisuratoAlmenoUnaVolta) {
+                            document.getElementById('m-pa').innerText = "--/--";
+                        } else {
+                            // Mantiene visualizzato l'ultimo valore statico congelato
+                            document.getElementById('m-pa').innerText = `${pressioneVisualizzataPAS}/${pressioneVisualizzataPAD}`;
+                        }
+                    }
+
+                    if(data.spo2 !== undefined) { 
+                        valoriAttuali.spo2 = parseInt(data.spo2); 
+                        document.getElementById('m-spo2').innerText = (!spo2IsConnected) ? "--" : (valoriAttuali.spo2 === 0 ? "0" : valoriAttuali.spo2); 
+                    }
+                    if(data.fr !== undefined) {
+                        document.getElementById('m-fr').innerText = (!ecgIsConnected) ? "--" : data.fr;
+                    }
+                    if(data.etco2 !== undefined) {
+                        valoriAttuali.etco2 = parseInt(data.etco2);
+                        document.getElementById('m-etco2').innerText = (!etco2IsConnected) ? "--" : data.etco2;
+                    }
+                    
+                    valutaSoglieAllarme();
+                    
+                    if(data.ritmo !== undefined) { 
+                        ritmoCorrente = data.ritmo;
+                        aggiornaTracciatoVisivo(data.ritmo, valoriAttuali.fc, ecgIsConnected, spo2IsConnected);
+                    }
+                });
             });
+            peer.on('error', () => { statoSetup.innerText = "Errore PIN."; peer.destroy(); });
         });
+
+        rigeneraTastieraTerapia(); 
+        aggiornaInterfacciaLP35();
+        aggiornaTracciatoVisivo(ritmoCorrente, valoriAttuali.fc, ecgIsConnected, spo2IsConnected);
+        
+        document.getElementById('m-etco2').innerText = "--";
+        document.getElementById('m-fr').innerText = "--";
     </script>
 </body>
 </html>

@@ -2,80 +2,154 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Regista - Controller</title>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifepack G10 Simulator - Home</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input[type="text"], input[type="range"] { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        .slider-val { font-size: 24px; font-weight: bold; text-align: center; color: #007bff; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #11111b;
+            color: #cdd6f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .hub-container {
+            text-align: center;
+            background: #1e1e2e;
+            padding: 50px 40px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid #313244;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #f5c2e7;
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: #a6adc8;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .grid-pulsanti {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .btn-hub {
+            background: #313244;
+            border: 2px solid #45475a;
+            border-radius: 12px;
+            padding: 30px 20px;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .btn-hub:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Stile specifico pulsante REGISTA */
+        .btn-regista:hover {
+            border-color: #f5c2e7;
+            background: rgba(245, 194, 231, 0.05);
+        }
+        .btn-regista .icona {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        .btn-regista h2 {
+            color: #f5c2e7;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* Stile specifico pulsante MONITOR */
+        .btn-monitor:hover {
+            border-color: #89b4fa;
+            background: rgba(137, 180, 250, 0.05);
+        }
+        .btn-monitor .icona {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        .btn-monitor h2 {
+            color: #89b4fa;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .btn-hub p {
+            color: #a6adc8;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .footer-credit {
+            margin-top: 40px;
+            font-size: 11px;
+            color: #585b70;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>REGISTA / CONTROLLER</h1>
+    <div class="hub-container">
+        <h1>Lifepack G10</h1>
+        <p class="subtitle">Simulatore di Monitor/Defibrillatore Avanzato per Scenari Clinici</p>
+        
+        <div class="grid-pulsanti">
+            <a href="regista.html" target="_blank" class="card-link">
+                <div class="btn-hub btn-regista">
+                    <div class="icona">🎬</div>
+                    <h2>Pannello Regista</h2>
+                    <p>Gestisci parametri vitali, ritmi cardiaci e invia comandi al monitor.</p>
+                </div>
+            </a>
 
-    <!-- STEP 1: Connessione al Monitor -->
-    <div class="card">
-        <h3>1. Connetti al Monitor</h3>
-        <input type="text" id="monitor-id" placeholder="Inserisci l'ID visualizzato sul Monitor">
-        <button id="connect-btn">Connetti</button>
-        <p id="conn-status" style="color: red; font-weight: bold;"></p>
+            <a href="monitor.html" target="_blank" class="card-link">
+                <div class="btn-hub btn-monitor">
+                    <div class="icona">🖥️</div>
+                    <h2>Monitor Studente</h2>
+                    <p>Visualizza i tracciati e interagisci con le funzioni di defibrillazione e NIBP.</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="footer-credit">
+            Interactive Medical Simulation Software
+        </div>
     </div>
 
-    <!-- STEP 2: Controllo Parametri -->
-    <div class="card">
-        <h3>2. Modifica Parametri Vitali</h3>
-        <label>Frequenza Cardiaca (FC):</label>
-        <div id="fc-val" class="slider-val">75</div>
-        <input type="range" id="fc-slider" min="30" max="220" value="75" disabled>
-    </div>
-
-    <script>
-        const peer = new Peer();
-        let conn = null;
-
-        const connectBtn = document.getElementById('connect-btn');
-        const monitorIdInput = document.getElementById('monitor-id');
-        const connStatus = document.getElementById('conn-status');
-        const fcSlider = document.getElementById('fc-slider');
-        const fcVal = document.getElementById('fc-val');
-
-        // Azione di connessione
-        connectBtn.addEventListener('click', () => {
-            const targetId = monitorIdInput.value.trim();
-            if(!targetId) return alert("Inserisci un ID valido");
-
-            connStatus.innerText = "Tentativo di connessione...";
-            connStatus.style.color = "#ffaa00";
-
-            // Apriamo il canale P2P diretto con il monitor
-            conn = peer.connect(targetId);
-
-            conn.on('open', () => {
-                connStatus.innerText = "Connesso con successo al Monitor!";
-                connStatus.style.color = "green";
-                fcSlider.disabled = false; // Attiviamo lo slider
-            });
-
-            conn.on('error', (err) => {
-                connStatus.innerText = "Errore di connessione.";
-                connStatus.style.color = "red";
-            });
-        });
-
-        // Invia i dati ogni volta che sposti lo slider della FC
-        fcSlider.addEventListener('input', (e) => {
-            const valoreFC = e.target.value;
-            fcVal.innerText = valoreFC;
-
-            if (conn && conn.open) {
-                // Inviamo il dato pacchettizzato come oggetto JSON
-                conn.send({ fc: valoreFC });
-            }
-        });
-    </script>
 </body>
 </html>
